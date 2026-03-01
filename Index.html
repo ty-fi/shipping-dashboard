@@ -4,14 +4,195 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Shipping Dashboard</title>
-  <?!= HtmlService.createHtmlOutputFromFile('Stylesheet').getContent(); ?>
+  <style>
+    /* ===== Reset & Base ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #f4f5f7;
+      --surface:    #ffffff;
+      --border:     #e2e5ea;
+      --text:       #1a1a2e;
+      --text-muted: #6b7280;
+      --primary:    #2563eb;
+      --radius:     12px;
+      --shadow:     0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+
+      --usps:   #333366;
+      --ups:    #5c3317;
+      --fedex:  #4d148c;
+      --dhl:    #d40511;
+      --amazon: #ff9900;
+      --unknown:#6b7280;
+
+      --status-transit:  #2563eb;
+      --status-delivery: #16a34a;
+      --status-delivered:#9ca3af;
+      --status-exception:#dc2626;
+      --status-pending:  #d97706;
+      --status-info:     #6b7280;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; flex: 1; }
+    .header-meta { font-size: 0.78rem; color: var(--text-muted); }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 8px; font-size: 0.875rem;
+      font-weight: 600; cursor: pointer; border: none; transition: all 0.15s;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--bg); }
+
+    .tabs {
+      display: flex; gap: 4px; padding: 16px 24px 0;
+      border-bottom: 1px solid var(--border); background: var(--surface);
+    }
+    .tab {
+      padding: 10px 20px; border-radius: 8px 8px 0 0; font-size: 0.875rem;
+      font-weight: 600; cursor: pointer; border: none; background: transparent;
+      color: var(--text-muted); transition: all 0.15s; border-bottom: 2px solid transparent;
+    }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: rgba(37,99,235,0.06); }
+    .tab-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--bg); border-radius: 12px; padding: 1px 7px; font-size: 0.75rem; margin-left: 6px;
+    }
+    .tab.active .tab-count { background: rgba(37,99,235,0.15); color: var(--primary); }
+
+    .main { padding: 24px; max-width: 1280px; margin: 0 auto; }
+    .tab-panel { display: none; }
+
+    .empty-state { text-align: center; padding: 64px 24px; color: var(--text-muted); }
+    .empty-state h3 { font-size: 1.1rem; margin-bottom: 8px; }
+    .empty-state p  { font-size: 0.875rem; }
+
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      overflow: hidden; transition: box-shadow 0.15s;
+    }
+    .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.08); }
+
+    .card-header { display: flex; align-items: flex-start; gap: 12px; padding: 16px 16px 12px; }
+
+    .carrier-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 800;
+      letter-spacing: 0.04em; text-transform: uppercase; color: #fff; white-space: nowrap; flex-shrink: 0;
+    }
+    .carrier-badge.USPS   { background: var(--usps); }
+    .carrier-badge.UPS    { background: var(--ups); }
+    .carrier-badge.FedEx  { background: var(--fedex); }
+    .carrier-badge.DHL    { background: var(--dhl); }
+    .carrier-badge.Amazon { background: var(--amazon); color: #111; }
+    .carrier-badge.Unknown{ background: var(--unknown); }
+
+    .card-title-block { flex: 1; min-width: 0; }
+    .card-description { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+    .card-meta { font-size: 0.75rem; color: var(--text-muted); }
+
+    .tracking-link { font-size: 0.75rem; font-family: monospace; color: var(--primary); text-decoration: none; word-break: break-all; }
+    .tracking-link:hover { text-decoration: underline; }
+
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px;
+      border-radius: 20px; font-size: 0.72rem; font-weight: 700; white-space: nowrap;
+    }
+    .status-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+    .status-InTransit            { background: rgba(37,99,235,0.1);   color: var(--status-transit); }
+    .status-OutForDelivery       { background: rgba(22,163,74,0.12);  color: var(--status-delivery); }
+    .status-Delivered            { background: rgba(156,163,175,0.15);color: var(--status-delivered); }
+    .status-Exception            { background: rgba(220,38,38,0.1);   color: var(--status-exception); }
+    .status-Pending,
+    .status-ShipmentInfoReceived { background: rgba(217,119,6,0.1);   color: var(--status-pending); }
+    .status-default              { background: rgba(107,114,128,0.1); color: var(--status-info); }
+
+    .card-body { padding: 0 16px 12px; }
+    .status-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .event-detail { font-size: 0.82rem; color: var(--text); margin-bottom: 2px; line-height: 1.4; }
+    .event-location { font-size: 0.78rem; color: var(--text-muted); }
+    .delivery-info { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 10px; background: rgba(22,163,74,0.06); border-radius: 8px; font-size: 0.8rem; color: #16a34a; font-weight: 600; }
+    .est-delivery { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+
+    .card-footer { border-top: 1px solid var(--border); padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; }
+    .last-updated { font-size: 0.73rem; color: var(--text-muted); }
+    .expand-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.78rem; display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; transition: all 0.15s; }
+    .expand-btn:hover { background: var(--bg); color: var(--text); }
+    .expand-btn .arrow { display: inline-block; transition: transform 0.2s; }
+
+    .timeline { display: none; padding: 12px 16px 16px; border-top: 1px solid var(--border); background: #fafbfc; }
+    .timeline.open { display: block; }
+    .timeline-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 12px; }
+    .timeline-item { display: flex; gap: 12px; position: relative; }
+    .timeline-item:not(:last-child)::after { content: ''; position: absolute; left: 9px; top: 18px; bottom: -4px; width: 2px; background: var(--border); }
+    .timeline-dot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); background: var(--surface); flex-shrink: 0; margin-top: 1px; position: relative; z-index: 1; }
+    .timeline-item:first-child .timeline-dot { background: var(--primary); border-color: var(--primary); }
+    .timeline-content { flex: 1; padding-bottom: 12px; }
+    .timeline-status { font-size: 0.82rem; font-weight: 600; margin-bottom: 1px; }
+    .timeline-detail { font-size: 0.78rem; color: var(--text-muted); line-height: 1.4; }
+    .timeline-date { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--surface); border-radius: var(--radius); box-shadow: 0 8px 32px rgba(0,0,0,0.18); padding: 28px; width: 100%; max-width: 440px; margin: 16px; }
+    .modal h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; }
+    .form-group input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.875rem; outline: none; transition: border-color 0.15s; }
+    .form-group input:focus { border-color: var(--primary); }
+    .form-error { color: #dc2626; font-size: 0.8rem; margin-top: 12px; display: none; }
+    .form-error.visible { display: block; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+    .loading { text-align: center; padding: 48px; color: var(--text-muted); font-size: 0.9rem; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: #1a1a2e; color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 0.85rem; box-shadow: 0 4px 16px rgba(0,0,0,0.2); animation: slideIn 0.2s ease; max-width: 320px; }
+    .toast.success { background: #16a34a; }
+    .toast.error   { background: #dc2626; }
+    @keyframes slideIn { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    @media (max-width: 600px) {
+      .header { padding: 12px 16px; }
+      .main   { padding: 16px; }
+      .tabs   { padding: 12px 16px 0; }
+      .card-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
 
   <!-- Header -->
   <header class="header">
-    <h1>📦 Shipping Dashboard</h1>
-    <span class="header-meta" id="last-refresh">Loading…</span>
+    <h1>&#128230; Shipping Dashboard</h1>
+    <span class="header-meta" id="last-refresh">Loading&hellip;</span>
     <button class="btn btn-primary" onclick="openModal()">+ Add Tracking</button>
   </header>
 
@@ -28,10 +209,10 @@
   <!-- Main content -->
   <main class="main">
     <div id="loading" class="loading">
-      <span class="spinner"></span>Fetching shipments…
+      <span class="spinner"></span>Fetching shipments&hellip;
     </div>
 
-    <div id="panel-active" class="tab-panel active" style="display:none">
+    <div id="panel-active" class="tab-panel" style="display:none">
       <div class="card-grid" id="grid-active"></div>
       <div class="empty-state" id="empty-active" style="display:none">
         <h3>No active shipments</h3>
@@ -54,12 +235,13 @@
       <h2>Add Tracking Number</h2>
       <div class="form-group">
         <label for="input-tracking">Tracking Number <span style="color:#dc2626">*</span></label>
-        <input type="text" id="input-tracking" placeholder="e.g. 9400111899223450244710 or 1Z999AA10123456784"
+        <input type="text" id="input-tracking"
+               placeholder="e.g. 9400111899223450244710 or 1Z999AA10123456784"
                autocomplete="off" spellcheck="false">
       </div>
       <div class="form-group">
-        <label for="input-label">Label / Description <span style="color:var(--text-muted)">(optional)</span></label>
-        <input type="text" id="input-label" placeholder="e.g. Amazon order — headphones">
+        <label for="input-label">Label / Description (optional)</label>
+        <input type="text" id="input-label" placeholder="e.g. Amazon order - headphones">
       </div>
       <p class="form-error" id="form-error"></p>
       <div class="modal-actions">
@@ -73,55 +255,51 @@
   <div class="toast-container" id="toast-container"></div>
 
   <script>
-    // ── State ──────────────────────────────────────────────────────────────
-    let currentTab = 'active';
-    let refreshTimer = null;
-    const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+    var currentTab = 'active';
+    var refreshTimer = null;
+    var REFRESH_MS = 5 * 60 * 1000;
 
-    // ── Carrier tracking URLs ─────────────────────────────────────────────
-    const CARRIER_URLS = {
-      USPS:   n => `https://tools.usps.com/go/TrackConfirmAction?tLabels=${n}`,
-      UPS:    n => `https://www.ups.com/track?tracknum=${n}`,
-      FedEx:  n => `https://www.fedex.com/fedextrack/?tracknumbers=${n}`,
-      DHL:    n => `https://www.dhl.com/en/express/tracking.html?AWB=${n}`,
-      Amazon: n => `https://www.amazon.com/progress-tracker/package/?shipmentId=${n}`,
-      Unknown:n => `https://parcelsapp.com/en/tracking/${n}`,
+    var CARRIER_URLS = {
+      USPS:    function(n) { return 'https://tools.usps.com/go/TrackConfirmAction?tLabels=' + n; },
+      UPS:     function(n) { return 'https://www.ups.com/track?tracknum=' + n; },
+      FedEx:   function(n) { return 'https://www.fedex.com/fedextrack/?tracknumbers=' + n; },
+      DHL:     function(n) { return 'https://www.dhl.com/en/express/tracking.html?AWB=' + n; },
+      Amazon:  function(n) { return 'https://www.amazon.com/progress-tracker/package/?shipmentId=' + n; },
+      Unknown: function(n) { return 'https://parcelsapp.com/en/tracking/' + n; }
     };
 
-    // ── Status display helpers ────────────────────────────────────────────
-    const STATUS_LABELS = {
-      InTransit:           'In Transit',
-      OutForDelivery:      'Out for Delivery',
-      Delivered:           'Delivered',
-      Exception:           'Exception',
-      Pending:             'Pending',
-      ShipmentInfoReceived:'Info Received',
-      NotFound:            'Not Found',
+    var STATUS_LABELS = {
+      'InTransit': 'In Transit',
+      'OutForDelivery': 'Out for Delivery',
+      'Delivered': 'Delivered',
+      'Exception': 'Exception',
+      'Pending': 'Pending',
+      'ShipmentInfoReceived': 'Info Received',
+      'NotFound': 'Not Found'
     };
 
     function statusClass(raw) {
       if (!raw) return 'status-default';
-      const key = raw.replace(/\s+/g, '');
-      return STATUS_LABELS[key] ? `status-${key}` : 'status-default';
+      var key = raw.replace(/\s+/g, '');
+      return STATUS_LABELS[key] ? 'status-' + key : 'status-default';
     }
 
     function statusLabel(raw) {
       if (!raw) return 'Unknown';
-      const key = raw.replace(/\s+/g, '');
+      var key = raw.replace(/\s+/g, '');
       return STATUS_LABELS[key] || raw;
     }
 
-    // ── Date formatting ───────────────────────────────────────────────────
     function fmtDate(str) {
-      if (!str) return '—';
-      const d = new Date(str);
+      if (!str) return '-';
+      var d = new Date(str);
       if (isNaN(d)) return str;
       return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
     function fmtDateTime(str) {
-      if (!str) return '—';
-      const d = new Date(str);
+      if (!str) return '-';
+      var d = new Date(str);
       if (isNaN(d)) return str;
       return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
              ', ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -129,19 +307,18 @@
 
     function timeAgo(str) {
       if (!str) return '';
-      const d = new Date(str);
+      var d = new Date(str);
       if (isNaN(d)) return '';
-      const mins = Math.round((Date.now() - d) / 60000);
-      if (mins < 2)   return 'just now';
-      if (mins < 60)  return `${mins}m ago`;
-      const hrs = Math.round(mins / 60);
-      if (hrs < 24)   return `${hrs}h ago`;
-      return `${Math.round(hrs / 24)}d ago`;
+      var mins = Math.round((Date.now() - d) / 60000);
+      if (mins < 2)  return 'just now';
+      if (mins < 60) return mins + 'm ago';
+      var hrs = Math.round(mins / 60);
+      if (hrs < 24)  return hrs + 'h ago';
+      return Math.round(hrs / 24) + 'd ago';
     }
 
-    // ── Escape HTML ───────────────────────────────────────────────────────
     function esc(str) {
-      if (!str) return '';
+      if (str === null || str === undefined) return '';
       return String(str)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -149,86 +326,76 @@
         .replace(/"/g, '&quot;');
     }
 
-    // ── Build tracking URL ────────────────────────────────────────────────
     function trackingUrl(carrier, number) {
-      const fn = CARRIER_URLS[carrier] || CARRIER_URLS.Unknown;
-      return fn(encodeURIComponent(number));
+      var fn = CARRIER_URLS[carrier] || CARRIER_URLS.Unknown;
+      return fn(encodeURIComponent(number || ''));
     }
 
-    // ── Build timeline HTML ───────────────────────────────────────────────
     function buildTimeline(events) {
       if (!events || events.length === 0) {
-        return '<p style="font-size:0.82rem;color:var(--text-muted)">No tracking events yet.</p>';
+        return '<p style="font-size:0.82rem;color:#6b7280">No tracking events yet.</p>';
       }
-      return events.map((ev, i) => `
-        <div class="timeline-item">
-          <div class="timeline-dot"></div>
-          <div class="timeline-content">
-            <div class="timeline-status">${esc(statusLabel(ev.status) || ev.status)}</div>
-            ${ev.detail ? `<div class="timeline-detail">${esc(ev.detail)}</div>` : ''}
-            ${ev.location ? `<div class="timeline-detail" style="color:var(--text-muted)">📍 ${esc(ev.location)}</div>` : ''}
-            <div class="timeline-date">${fmtDateTime(ev.time)}</div>
-          </div>
-        </div>
-      `).join('');
+      return events.map(function(ev) {
+        return '<div class="timeline-item">' +
+          '<div class="timeline-dot"></div>' +
+          '<div class="timeline-content">' +
+            '<div class="timeline-status">' + esc(statusLabel(ev.status) || ev.status) + '</div>' +
+            (ev.detail   ? '<div class="timeline-detail">' + esc(ev.detail) + '</div>' : '') +
+            (ev.location ? '<div class="timeline-detail">' + esc(ev.location) + '</div>' : '') +
+            '<div class="timeline-date">' + fmtDateTime(ev.time || ev.date) + '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
     }
 
-    // ── Build card HTML ───────────────────────────────────────────────────
     function buildCard(s, id) {
-      const carrier  = s.carrier || 'Unknown';
-      const url      = trackingUrl(carrier, s.trackingNumber);
-      const events   = Array.isArray(s.events) ? s.events : [];
-      const statusCls = statusClass(s.lastStatus);
-      const delivered = s.delivered === true || s.delivered === 'TRUE';
+      var carrier    = s.carrier || 'Unknown';
+      var url        = trackingUrl(carrier, s.trackingNum);
+      var events     = Array.isArray(s.eventHistory) ? s.eventHistory : [];
+      var statusCls  = statusClass(s.lastStatus);
+      var delivered  = s.delivered === true || s.delivered === 'TRUE';
 
-      const deliveryBadge = delivered
-        ? `<div class="delivery-info">✓ Delivered ${fmtDate(s.deliveredDate)}</div>`
-        : (s.estDelivery
-            ? `<div class="est-delivery">Est. delivery: <strong>${fmtDate(s.estDelivery)}</strong></div>`
-            : '');
+      var deliveryBadge = '';
+      if (delivered) {
+        deliveryBadge = '<div class="delivery-info">Delivered ' + fmtDate(s.deliveredDate) + '</div>';
+      } else if (s.estDelivery) {
+        deliveryBadge = '<div class="est-delivery">Est. delivery: <strong>' + fmtDate(s.estDelivery) + '</strong></div>';
+      }
 
-      return `
-        <div class="card" id="card-${id}">
-          <div class="card-header">
-            <span class="carrier-badge ${esc(carrier)}">${esc(carrier)}</span>
-            <div class="card-title-block">
-              <div class="card-description" title="${esc(s.description)}">${esc(s.description || 'Package')}</div>
-              <div class="card-meta">${esc(s.retailer || '')}${s.retailer && s.orderDate ? ' · ' : ''}${s.orderDate ? fmtDate(s.orderDate) : ''}</div>
-            </div>
-          </div>
-
-          <div class="card-body">
-            <a class="tracking-link" href="${esc(url)}" target="_blank" rel="noopener">${esc(s.trackingNumber)}</a>
-
-            <div class="status-row" style="margin-top:8px">
-              <span class="status-pill ${statusCls}">${esc(statusLabel(s.lastStatus))}</span>
-            </div>
-
-            ${s.statusDetail ? `<div class="event-detail">${esc(s.statusDetail)}</div>` : ''}
-            ${s.lastLocation  ? `<div class="event-location">📍 ${esc(s.lastLocation)}</div>` : ''}
-            ${deliveryBadge}
-          </div>
-
-          <div class="card-footer">
-            <span class="last-updated">Updated ${timeAgo(s.lastUpdated)}</span>
-            <button class="expand-btn" id="expand-${id}" onclick="toggleTimeline('${id}')">
-              History <span class="arrow">▼</span>
-            </button>
-          </div>
-
-          <div class="timeline" id="timeline-${id}">
-            <div class="timeline-title">Tracking History</div>
-            ${buildTimeline(events)}
-          </div>
-        </div>
-      `;
+      return '<div class="card" id="card-' + id + '">' +
+        '<div class="card-header">' +
+          '<span class="carrier-badge ' + esc(carrier) + '">' + esc(carrier) + '</span>' +
+          '<div class="card-title-block">' +
+            '<div class="card-description">' + esc(s.description || 'Package') + '</div>' +
+            '<div class="card-meta">' + esc(s.retailer || '') + (s.retailer && s.orderDate ? ' &middot; ' : '') + (s.orderDate ? fmtDate(s.orderDate) : '') + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="card-body">' +
+          '<a class="tracking-link" href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(s.trackingNum) + '</a>' +
+          '<div class="status-row" style="margin-top:8px">' +
+            '<span class="status-pill ' + statusCls + '">' + esc(statusLabel(s.lastStatus)) + '</span>' +
+          '</div>' +
+          (s.statusDetail ? '<div class="event-detail">' + esc(s.statusDetail) + '</div>' : '') +
+          (s.lastLocation ? '<div class="event-location">' + esc(s.lastLocation) + '</div>' : '') +
+          deliveryBadge +
+        '</div>' +
+        '<div class="card-footer">' +
+          '<span class="last-updated">Updated ' + timeAgo(s.lastUpdated) + '</span>' +
+          '<button class="expand-btn" id="expand-' + id + '" onclick="toggleTimeline(\'' + id + '\')">' +
+            'History <span class="arrow">&#9660;</span>' +
+          '</button>' +
+        '</div>' +
+        '<div class="timeline" id="timeline-' + id + '">' +
+          '<div class="timeline-title">Tracking History</div>' +
+          buildTimeline(events) +
+        '</div>' +
+      '</div>';
     }
 
-    // ── Render tab ────────────────────────────────────────────────────────
     function renderTab(name, items) {
-      const grid  = document.getElementById(`grid-${name}`);
-      const empty = document.getElementById(`empty-${name}`);
-      const count = document.getElementById(`count-${name}`);
+      var grid  = document.getElementById('grid-' + name);
+      var empty = document.getElementById('empty-' + name);
+      var count = document.getElementById('count-' + name);
 
       count.textContent = items.length;
 
@@ -237,82 +404,83 @@
         grid.style.display = 'none';
         empty.style.display = 'block';
       } else {
-        grid.innerHTML = items.map((s, i) => buildCard(s, `${name}-${i}`)).join('');
+        grid.innerHTML = items.map(function(s, i) { return buildCard(s, name + '-' + i); }).join('');
         grid.style.display = 'grid';
         empty.style.display = 'none';
       }
     }
 
-    // ── Fetch data from server ────────────────────────────────────────────
     function fetchData(silent) {
       if (!silent) {
         document.getElementById('loading').style.display = 'block';
         document.getElementById('panel-active').style.display    = 'none';
         document.getElementById('panel-delivered').style.display = 'none';
       }
-
       google.script.run
-        .withSuccessHandler(data => onDataLoaded(data, silent))
-        .withFailureHandler(err => onError(err, silent))
+        .withSuccessHandler(function(data) { onDataLoaded(data, silent); })
+        .withFailureHandler(function(err)  { onError(err, silent); })
         .getShipmentData();
     }
 
     function onDataLoaded(data, silent) {
       document.getElementById('loading').style.display = 'none';
-      document.getElementById('panel-active').style.display    = 'block';
-      document.getElementById('panel-delivered').style.display = 'block';
 
-      renderTab('active',    data.active    || []);
-      renderTab('delivered', data.delivered || []);
+      if (data && data.error) {
+        document.getElementById('panel-active').style.display = 'block';
+        document.getElementById('empty-active').style.display = 'block';
+        document.getElementById('grid-active').style.display  = 'none';
+        document.getElementById('empty-active').querySelector('h3').textContent = 'Setup required';
+        document.getElementById('empty-active').querySelector('p').textContent  = data.error;
+        return;
+      }
 
-      const now = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-      document.getElementById('last-refresh').textContent = `Last updated: ${now}`;
+      renderTab('active',    (data && data.active)    || []);
+      renderTab('delivered', (data && data.delivered) || []);
 
-      // Restore correct tab visibility
-      switchTab(currentTab, true);
+      var now = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      document.getElementById('last-refresh').textContent = 'Last updated: ' + now;
 
-      // Schedule next refresh
+      switchTab(currentTab);
+
       clearTimeout(refreshTimer);
-      refreshTimer = setTimeout(() => fetchData(true), REFRESH_INTERVAL_MS);
+      refreshTimer = setTimeout(function() { fetchData(true); }, REFRESH_MS);
     }
 
     function onError(err, silent) {
       document.getElementById('loading').style.display = 'none';
       document.getElementById('panel-active').style.display    = 'block';
       document.getElementById('panel-delivered').style.display = 'block';
-      if (!silent) {
-        showToast('Failed to load shipments: ' + (err.message || err), 'error');
-      }
+      document.getElementById('empty-active').style.display    = 'block';
+      document.getElementById('grid-active').style.display     = 'none';
+      document.getElementById('empty-active').querySelector('h3').textContent = 'Error loading shipments';
+      document.getElementById('empty-active').querySelector('p').textContent  =
+        (err && err.message) ? err.message : String(err);
+      switchTab(currentTab);
     }
 
-    // ── Tab switching ─────────────────────────────────────────────────────
-    function switchTab(name, skipRender) {
+    function switchTab(name) {
       currentTab = name;
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.getElementById(`tab-${name}`).classList.add('active');
-
-      ['active', 'delivered'].forEach(n => {
-        const panel = document.getElementById(`panel-${n}`);
-        if (panel) panel.style.display = (n === name) ? 'block' : 'none';
+      document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+      document.getElementById('tab-' + name).classList.add('active');
+      ['active', 'delivered'].forEach(function(n) {
+        var p = document.getElementById('panel-' + n);
+        if (p) p.style.display = (n === name) ? 'block' : 'none';
       });
     }
 
-    // ── Timeline toggle ───────────────────────────────────────────────────
     function toggleTimeline(id) {
-      const tl  = document.getElementById(`timeline-${id}`);
-      const btn = document.getElementById(`expand-${id}`);
-      const open = tl.classList.toggle('open');
-      btn.classList.toggle('expanded', open);
+      var tl  = document.getElementById('timeline-' + id);
+      var btn = document.getElementById('expand-' + id);
+      var open = tl.classList.toggle('open');
       btn.querySelector('.arrow').style.transform = open ? 'rotate(180deg)' : '';
     }
 
-    // ── Modal ─────────────────────────────────────────────────────────────
     function openModal() {
       document.getElementById('modal-overlay').classList.add('open');
       document.getElementById('input-tracking').value = '';
       document.getElementById('input-label').value    = '';
       hideFormError();
-      setTimeout(() => document.getElementById('input-tracking').focus(), 50);
+      setTimeout(function() { document.getElementById('input-tracking').focus(); }, 50);
     }
 
     function closeModal() {
@@ -323,12 +491,12 @@
       if (e.target === document.getElementById('modal-overlay')) closeModal();
     }
 
-    document.addEventListener('keydown', e => {
+    document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') closeModal();
     });
 
     function showFormError(msg) {
-      const el = document.getElementById('form-error');
+      var el = document.getElementById('form-error');
       el.textContent = msg;
       el.classList.add('visible');
     }
@@ -338,24 +506,20 @@
     }
 
     function submitTracking() {
-      const number = document.getElementById('input-tracking').value.trim();
-      const label  = document.getElementById('input-label').value.trim();
+      var number = document.getElementById('input-tracking').value.trim();
+      var label  = document.getElementById('input-label').value.trim();
 
-      if (!number) {
-        showFormError('Please enter a tracking number.');
-        return;
-      }
+      if (!number) { showFormError('Please enter a tracking number.'); return; }
 
       hideFormError();
-      const btn = document.getElementById('btn-submit');
+      var btn = document.getElementById('btn-submit');
       btn.disabled    = true;
-      btn.textContent = 'Adding…';
+      btn.textContent = 'Adding...';
 
       google.script.run
-        .withSuccessHandler(result => {
+        .withSuccessHandler(function(result) {
           btn.disabled    = false;
           btn.textContent = 'Track Package';
-
           if (result && result.error) {
             showFormError(result.error);
           } else {
@@ -364,25 +528,24 @@
             fetchData(true);
           }
         })
-        .withFailureHandler(err => {
+        .withFailureHandler(function(err) {
           btn.disabled    = false;
           btn.textContent = 'Track Package';
-          showFormError('Error: ' + (err.message || err));
+          showFormError('Error: ' + ((err && err.message) || String(err)));
         })
         .addManualTracking(number, label);
     }
 
-    // ── Toast notifications ───────────────────────────────────────────────
     function showToast(msg, type) {
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      toast.className = `toast${type ? ' ' + type : ''}`;
+      var container = document.getElementById('toast-container');
+      var toast = document.createElement('div');
+      toast.className = 'toast' + (type ? ' ' + type : '');
       toast.textContent = msg;
       container.appendChild(toast);
-      setTimeout(() => toast.remove(), 4000);
+      setTimeout(function() { toast.remove(); }, 4000);
     }
 
-    // ── Init ──────────────────────────────────────────────────────────────
+    // Init
     fetchData(false);
   </script>
 </body>

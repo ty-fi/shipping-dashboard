@@ -107,11 +107,8 @@ function doGet(e) {
   }
 
   // Default: serve the dashboard
-  var html = HtmlService.createTemplateFromFile('Index')
-    .evaluate()
-    .setTitle('Shipping Dashboard')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DENY);
-  return html;
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('Shipping Dashboard');
 }
 
 function include(filename) {
@@ -494,6 +491,7 @@ function guessCarrierFromNumber(tn) {
 
 function getShipmentData() {
   var sheet = getSheet();
+  if (!sheet) return { active: [], delivered: [], error: 'Sheet not found — run setup() first.' };
   var data  = sheet.getDataRange().getValues();
   if (data.length <= 1) return { active: [], delivered: [] };
 
