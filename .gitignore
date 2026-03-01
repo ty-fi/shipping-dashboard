@@ -1,4 +1,8 @@
+# Claude session files
 *.session.md
+*.jsonl
+
+# Local config overrides with real API keys / Sheet IDs
 *.local.gs
 config.private.*
 config.local.*

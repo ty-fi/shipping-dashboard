@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Shipping Dashboard</title>
   <style>
-    /* ===== Reset & Base ===== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
@@ -33,52 +32,22 @@
       --status-info:     #6b7280;
     }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-    .header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 16px 24px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    }
+    .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
     .header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; flex: 1; }
     .header-meta { font-size: 0.78rem; color: var(--text-muted); }
 
-    .btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 8px 16px; border-radius: 8px; font-size: 0.875rem;
-      font-weight: 600; cursor: pointer; border: none; transition: all 0.15s;
-    }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
     .btn-primary { background: var(--primary); color: #fff; }
     .btn-primary:hover { background: #1d4ed8; }
     .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
     .btn-ghost:hover { background: var(--bg); }
 
-    .tabs {
-      display: flex; gap: 4px; padding: 16px 24px 0;
-      border-bottom: 1px solid var(--border); background: var(--surface);
-    }
-    .tab {
-      padding: 10px 20px; border-radius: 8px 8px 0 0; font-size: 0.875rem;
-      font-weight: 600; cursor: pointer; border: none; background: transparent;
-      color: var(--text-muted); transition: all 0.15s; border-bottom: 2px solid transparent;
-    }
+    .tabs { display: flex; gap: 4px; padding: 16px 24px 0; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .tab { padding: 10px 20px; border-radius: 8px 8px 0 0; font-size: 0.875rem; font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--text-muted); transition: all 0.15s; border-bottom: 2px solid transparent; }
     .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: rgba(37,99,235,0.06); }
-    .tab-count {
-      display: inline-flex; align-items: center; justify-content: center;
-      background: var(--bg); border-radius: 12px; padding: 1px 7px; font-size: 0.75rem; margin-left: 6px;
-    }
+    .tab-count { display: inline-flex; align-items: center; justify-content: center; background: var(--bg); border-radius: 12px; padding: 1px 7px; font-size: 0.75rem; margin-left: 6px; }
     .tab.active .tab-count { background: rgba(37,99,235,0.15); color: var(--primary); }
 
     .main { padding: 24px; max-width: 1280px; margin: 0 auto; }
@@ -86,24 +55,16 @@
 
     .empty-state { text-align: center; padding: 64px 24px; color: var(--text-muted); }
     .empty-state h3 { font-size: 1.1rem; margin-bottom: 8px; }
-    .empty-state p  { font-size: 0.875rem; }
+    .empty-state p { font-size: 0.875rem; }
 
     .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
 
-    .card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); box-shadow: var(--shadow);
-      overflow: hidden; transition: box-shadow 0.15s;
-    }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; transition: box-shadow 0.15s; }
     .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.08); }
 
     .card-header { display: flex; align-items: flex-start; gap: 12px; padding: 16px 16px 12px; }
 
-    .carrier-badge {
-      display: inline-flex; align-items: center; justify-content: center;
-      padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 800;
-      letter-spacing: 0.04em; text-transform: uppercase; color: #fff; white-space: nowrap; flex-shrink: 0;
-    }
+    .carrier-badge { display: inline-flex; align-items: center; justify-content: center; padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: #fff; white-space: nowrap; flex-shrink: 0; }
     .carrier-badge.USPS   { background: var(--usps); }
     .carrier-badge.UPS    { background: var(--ups); }
     .carrier-badge.FedEx  { background: var(--fedex); }
@@ -118,10 +79,7 @@
     .tracking-link { font-size: 0.75rem; font-family: monospace; color: var(--primary); text-decoration: none; word-break: break-all; }
     .tracking-link:hover { text-decoration: underline; }
 
-    .status-pill {
-      display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px;
-      border-radius: 20px; font-size: 0.72rem; font-weight: 700; white-space: nowrap;
-    }
+    .status-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
     .status-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 
     .status-InTransit            { background: rgba(37,99,235,0.1);   color: var(--status-transit); }
@@ -189,14 +147,12 @@
 </head>
 <body>
 
-  <!-- Header -->
   <header class="header">
     <h1>&#128230; Shipping Dashboard</h1>
-    <span class="header-meta" id="last-refresh">Loading&hellip;</span>
+    <span class="header-meta" id="last-refresh"></span>
     <button class="btn btn-primary" onclick="openModal()">+ Add Tracking</button>
   </header>
 
-  <!-- Tabs -->
   <nav class="tabs">
     <button class="tab active" id="tab-active" onclick="switchTab('active')">
       Active <span class="tab-count" id="count-active">0</span>
@@ -206,12 +162,10 @@
     </button>
   </nav>
 
-  <!-- Main content -->
   <main class="main">
     <div id="loading" class="loading">
       <span class="spinner"></span>Fetching shipments&hellip;
     </div>
-
     <div id="panel-active" class="tab-panel" style="display:none">
       <div class="card-grid" id="grid-active"></div>
       <div class="empty-state" id="empty-active" style="display:none">
@@ -219,7 +173,6 @@
         <p>Add a tracking number or wait for the next email scan.</p>
       </div>
     </div>
-
     <div id="panel-delivered" class="tab-panel" style="display:none">
       <div class="card-grid" id="grid-delivered"></div>
       <div class="empty-state" id="empty-delivered" style="display:none">
@@ -229,15 +182,12 @@
     </div>
   </main>
 
-  <!-- Add Tracking Modal -->
   <div class="modal-overlay" id="modal-overlay" onclick="closeModalOnBackdrop(event)">
     <div class="modal">
       <h2>Add Tracking Number</h2>
       <div class="form-group">
         <label for="input-tracking">Tracking Number <span style="color:#dc2626">*</span></label>
-        <input type="text" id="input-tracking"
-               placeholder="e.g. 9400111899223450244710 or 1Z999AA10123456784"
-               autocomplete="off" spellcheck="false">
+        <input type="text" id="input-tracking" placeholder="e.g. 9400111899223450244710 or 1Z999AA10123456784" autocomplete="off" spellcheck="false">
       </div>
       <div class="form-group">
         <label for="input-label">Label / Description (optional)</label>
@@ -251,13 +201,18 @@
     </div>
   </div>
 
-  <!-- Toast container -->
   <div class="toast-container" id="toast-container"></div>
 
   <script>
-    var currentTab = 'active';
+    // ─── CONFIG ───────────────────────────────────────────────────────────────
+    // Paste your Apps Script web app URL here.
+    // Deploy settings: Execute as → Me, Who has access → Anyone, even anonymous
+    var SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+    // ─────────────────────────────────────────────────────────────────────────
+
+    var currentTab   = 'active';
     var refreshTimer = null;
-    var REFRESH_MS = 5 * 60 * 1000;
+    var REFRESH_MS   = 5 * 60 * 1000;
 
     var CARRIER_URLS = {
       USPS:    function(n) { return 'https://tools.usps.com/go/TrackConfirmAction?tLabels=' + n; },
@@ -269,12 +224,9 @@
     };
 
     var STATUS_LABELS = {
-      'InTransit': 'In Transit',
-      'OutForDelivery': 'Out for Delivery',
-      'Delivered': 'Delivered',
-      'Exception': 'Exception',
-      'Pending': 'Pending',
-      'ShipmentInfoReceived': 'Info Received',
+      'InTransit': 'In Transit', 'OutForDelivery': 'Out for Delivery',
+      'Delivered': 'Delivered',  'Exception': 'Exception',
+      'Pending': 'Pending',      'ShipmentInfoReceived': 'Info Received',
       'NotFound': 'Not Found'
     };
 
@@ -283,28 +235,22 @@
       var key = raw.replace(/\s+/g, '');
       return STATUS_LABELS[key] ? 'status-' + key : 'status-default';
     }
-
     function statusLabel(raw) {
       if (!raw) return 'Unknown';
       var key = raw.replace(/\s+/g, '');
       return STATUS_LABELS[key] || raw;
     }
-
     function fmtDate(str) {
       if (!str) return '-';
       var d = new Date(str);
-      if (isNaN(d)) return str;
-      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return isNaN(d) ? str : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
-
     function fmtDateTime(str) {
       if (!str) return '-';
       var d = new Date(str);
-      if (isNaN(d)) return str;
-      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
+      return isNaN(d) ? str : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
              ', ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     }
-
     function timeAgo(str) {
       if (!str) return '';
       var d = new Date(str);
@@ -313,19 +259,12 @@
       if (mins < 2)  return 'just now';
       if (mins < 60) return mins + 'm ago';
       var hrs = Math.round(mins / 60);
-      if (hrs < 24)  return hrs + 'h ago';
-      return Math.round(hrs / 24) + 'd ago';
+      return hrs < 24 ? hrs + 'h ago' : Math.round(hrs / 24) + 'd ago';
     }
-
     function esc(str) {
       if (str === null || str === undefined) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
-
     function trackingUrl(carrier, number) {
       var fn = CARRIER_URLS[carrier] || CARRIER_URLS.Unknown;
       return fn(encodeURIComponent(number || ''));
@@ -340,34 +279,31 @@
           '<div class="timeline-dot"></div>' +
           '<div class="timeline-content">' +
             '<div class="timeline-status">' + esc(statusLabel(ev.status) || ev.status) + '</div>' +
-            (ev.detail   ? '<div class="timeline-detail">' + esc(ev.detail) + '</div>' : '') +
+            (ev.detail   ? '<div class="timeline-detail">' + esc(ev.detail)   + '</div>' : '') +
             (ev.location ? '<div class="timeline-detail">' + esc(ev.location) + '</div>' : '') +
             '<div class="timeline-date">' + fmtDateTime(ev.time || ev.date) + '</div>' +
-          '</div>' +
-        '</div>';
+          '</div></div>';
       }).join('');
     }
 
     function buildCard(s, id) {
-      var carrier    = s.carrier || 'Unknown';
-      var url        = trackingUrl(carrier, s.trackingNum);
-      var events     = Array.isArray(s.eventHistory) ? s.eventHistory : [];
-      var statusCls  = statusClass(s.lastStatus);
-      var delivered  = s.delivered === true || s.delivered === 'TRUE';
-
-      var deliveryBadge = '';
-      if (delivered) {
-        deliveryBadge = '<div class="delivery-info">Delivered ' + fmtDate(s.deliveredDate) + '</div>';
-      } else if (s.estDelivery) {
-        deliveryBadge = '<div class="est-delivery">Est. delivery: <strong>' + fmtDate(s.estDelivery) + '</strong></div>';
-      }
+      var carrier   = s.carrier || 'Unknown';
+      var url       = trackingUrl(carrier, s.trackingNum);
+      var events    = Array.isArray(s.eventHistory) ? s.eventHistory : [];
+      var statusCls = statusClass(s.lastStatus);
+      var delivered = s.delivered === true || s.delivered === 'TRUE';
+      var badge     = delivered
+        ? '<div class="delivery-info">Delivered ' + fmtDate(s.deliveredDate) + '</div>'
+        : (s.estDelivery ? '<div class="est-delivery">Est. delivery: <strong>' + fmtDate(s.estDelivery) + '</strong></div>' : '');
 
       return '<div class="card" id="card-' + id + '">' +
         '<div class="card-header">' +
           '<span class="carrier-badge ' + esc(carrier) + '">' + esc(carrier) + '</span>' +
           '<div class="card-title-block">' +
             '<div class="card-description">' + esc(s.description || 'Package') + '</div>' +
-            '<div class="card-meta">' + esc(s.retailer || '') + (s.retailer && s.orderDate ? ' &middot; ' : '') + (s.orderDate ? fmtDate(s.orderDate) : '') + '</div>' +
+            '<div class="card-meta">' + esc(s.retailer || '') +
+              (s.retailer && s.orderDate ? ' &middot; ' : '') +
+              (s.orderDate ? fmtDate(s.orderDate) : '') + '</div>' +
           '</div>' +
         '</div>' +
         '<div class="card-body">' +
@@ -377,7 +313,7 @@
           '</div>' +
           (s.statusDetail ? '<div class="event-detail">' + esc(s.statusDetail) + '</div>' : '') +
           (s.lastLocation ? '<div class="event-location">' + esc(s.lastLocation) + '</div>' : '') +
-          deliveryBadge +
+          badge +
         '</div>' +
         '<div class="card-footer">' +
           '<span class="last-updated">Updated ' + timeAgo(s.lastUpdated) + '</span>' +
@@ -393,69 +329,55 @@
     }
 
     function renderTab(name, items) {
-      var grid  = document.getElementById('grid-' + name);
+      var grid  = document.getElementById('grid-'  + name);
       var empty = document.getElementById('empty-' + name);
       var count = document.getElementById('count-' + name);
-
       count.textContent = items.length;
-
       if (items.length === 0) {
-        grid.innerHTML = '';
-        grid.style.display = 'none';
-        empty.style.display = 'block';
+        grid.innerHTML = ''; grid.style.display = 'none'; empty.style.display = 'block';
       } else {
         grid.innerHTML = items.map(function(s, i) { return buildCard(s, name + '-' + i); }).join('');
-        grid.style.display = 'grid';
-        empty.style.display = 'none';
+        grid.style.display = 'grid'; empty.style.display = 'none';
       }
     }
 
-    function fetchData(silent) {
-      if (!silent) {
-        document.getElementById('loading').style.display = 'block';
-        document.getElementById('panel-active').style.display    = 'none';
-        document.getElementById('panel-delivered').style.display = 'none';
-      }
-      google.script.run
-        .withSuccessHandler(function(data) { onDataLoaded(data, silent); })
-        .withFailureHandler(function(err)  { onError(err, silent); })
-        .getShipmentData();
-    }
-
-    function onDataLoaded(data, silent) {
-      document.getElementById('loading').style.display = 'none';
-
-      if (data && data.error) {
-        document.getElementById('panel-active').style.display = 'block';
-        document.getElementById('empty-active').style.display = 'block';
-        document.getElementById('grid-active').style.display  = 'none';
-        document.getElementById('empty-active').querySelector('h3').textContent = 'Setup required';
-        document.getElementById('empty-active').querySelector('p').textContent  = data.error;
+    function loadData(silent) {
+      if (SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+        showError('Set SCRIPT_URL at the top of index.html to your Apps Script web app URL.');
         return;
       }
+      if (!silent) document.getElementById('loading').style.display = 'block';
 
-      renderTab('active',    (data && data.active)    || []);
-      renderTab('delivered', (data && data.delivered) || []);
-
-      var now = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-      document.getElementById('last-refresh').textContent = 'Last updated: ' + now;
-
-      switchTab(currentTab);
-
-      clearTimeout(refreshTimer);
-      refreshTimer = setTimeout(function() { fetchData(true); }, REFRESH_MS);
+      fetch(SCRIPT_URL + '?action=getData')
+        .then(function(r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function(data) {
+          document.getElementById('loading').style.display = 'none';
+          if (data.error) { showError(data.error); return; }
+          renderTab('active',    data.active    || []);
+          renderTab('delivered', data.delivered || []);
+          var now = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          document.getElementById('last-refresh').textContent = 'Last updated: ' + now;
+          switchTab(currentTab);
+          clearTimeout(refreshTimer);
+          refreshTimer = setTimeout(function() { loadData(true); }, REFRESH_MS);
+        })
+        .catch(function(err) {
+          document.getElementById('loading').style.display = 'none';
+          showError('Could not reach Apps Script: ' + err.message +
+            '. Ensure the deployment is set to "Anyone, even anonymous".');
+        });
     }
 
-    function onError(err, silent) {
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('panel-active').style.display    = 'block';
-      document.getElementById('panel-delivered').style.display = 'block';
-      document.getElementById('empty-active').style.display    = 'block';
-      document.getElementById('grid-active').style.display     = 'none';
-      document.getElementById('empty-active').querySelector('h3').textContent = 'Error loading shipments';
-      document.getElementById('empty-active').querySelector('p').textContent  =
-        (err && err.message) ? err.message : String(err);
-      switchTab(currentTab);
+    function showError(msg) {
+      document.getElementById('panel-active').style.display = 'block';
+      document.getElementById('empty-active').style.display = 'block';
+      document.getElementById('grid-active').style.display  = 'none';
+      document.getElementById('empty-active').querySelector('h3').textContent = 'Could not load shipments';
+      document.getElementById('empty-active').querySelector('p').textContent  = msg;
+      switchTab('active');
     }
 
     function switchTab(name) {
@@ -470,7 +392,7 @@
 
     function toggleTimeline(id) {
       var tl  = document.getElementById('timeline-' + id);
-      var btn = document.getElementById('expand-' + id);
+      var btn = document.getElementById('expand-'   + id);
       var open = tl.classList.toggle('open');
       btn.querySelector('.arrow').style.transform = open ? 'rotate(180deg)' : '';
     }
@@ -482,71 +404,45 @@
       hideFormError();
       setTimeout(function() { document.getElementById('input-tracking').focus(); }, 50);
     }
-
-    function closeModal() {
-      document.getElementById('modal-overlay').classList.remove('open');
-    }
-
-    function closeModalOnBackdrop(e) {
-      if (e.target === document.getElementById('modal-overlay')) closeModal();
-    }
-
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') closeModal();
-    });
-
-    function showFormError(msg) {
-      var el = document.getElementById('form-error');
-      el.textContent = msg;
-      el.classList.add('visible');
-    }
-
-    function hideFormError() {
-      document.getElementById('form-error').classList.remove('visible');
-    }
+    function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+    function closeModalOnBackdrop(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
+    function showFormError(msg) { var el = document.getElementById('form-error'); el.textContent = msg; el.classList.add('visible'); }
+    function hideFormError() { document.getElementById('form-error').classList.remove('visible'); }
 
     function submitTracking() {
       var number = document.getElementById('input-tracking').value.trim();
       var label  = document.getElementById('input-label').value.trim();
-
       if (!number) { showFormError('Please enter a tracking number.'); return; }
-
       hideFormError();
       var btn = document.getElementById('btn-submit');
-      btn.disabled    = true;
-      btn.textContent = 'Adding...';
+      btn.disabled = true; btn.textContent = 'Adding...';
 
-      google.script.run
-        .withSuccessHandler(function(result) {
-          btn.disabled    = false;
-          btn.textContent = 'Track Package';
-          if (result && result.error) {
-            showFormError(result.error);
-          } else {
-            closeModal();
-            showToast('Tracking number added!', 'success');
-            fetchData(true);
-          }
+      fetch(SCRIPT_URL + '?action=addTracking' +
+            '&number=' + encodeURIComponent(number) +
+            '&label='  + encodeURIComponent(label))
+        .then(function(r) { return r.json(); })
+        .then(function(result) {
+          btn.disabled = false; btn.textContent = 'Track Package';
+          if (result && result.error) { showFormError(result.error); }
+          else { closeModal(); showToast('Tracking number added!', 'success'); loadData(true); }
         })
-        .withFailureHandler(function(err) {
-          btn.disabled    = false;
-          btn.textContent = 'Track Package';
-          showFormError('Error: ' + ((err && err.message) || String(err)));
-        })
-        .addManualTracking(number, label);
+        .catch(function(err) {
+          btn.disabled = false; btn.textContent = 'Track Package';
+          showFormError('Request failed: ' + err.message);
+        });
     }
 
     function showToast(msg, type) {
-      var container = document.getElementById('toast-container');
-      var toast = document.createElement('div');
-      toast.className = 'toast' + (type ? ' ' + type : '');
-      toast.textContent = msg;
-      container.appendChild(toast);
-      setTimeout(function() { toast.remove(); }, 4000);
+      var c = document.getElementById('toast-container');
+      var t = document.createElement('div');
+      t.className = 'toast' + (type ? ' ' + type : '');
+      t.textContent = msg;
+      c.appendChild(t);
+      setTimeout(function() { t.remove(); }, 4000);
     }
 
-    // Init
-    fetchData(false);
+    loadData(false);
   </script>
 </body>
 </html>
