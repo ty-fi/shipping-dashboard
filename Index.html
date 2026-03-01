@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shipping Dashboard</title>
+  <?!= HtmlService.createHtmlOutputFromFile('Stylesheet').getContent(); ?>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <h1>📦 Shipping Dashboard</h1>
+    <span class="header-meta" id="last-refresh">Loading…</span>
+    <button class="btn btn-primary" onclick="openModal()">+ Add Tracking</button>
+  </header>
+
+  <!-- Tabs -->
+  <nav class="tabs">
+    <button class="tab active" id="tab-active" onclick="switchTab('active')">
+      Active <span class="tab-count" id="count-active">0</span>
+    </button>
+    <button class="tab" id="tab-delivered" onclick="switchTab('delivered')">
+      Delivered <span class="tab-count" id="count-delivered">0</span>
+    </button>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main">
+    <div id="loading" class="loading">
+      <span class="spinner"></span>Fetching shipments…
+    </div>
+
+    <div id="panel-active" class="tab-panel active" style="display:none">
+      <div class="card-grid" id="grid-active"></div>
+      <div class="empty-state" id="empty-active" style="display:none">
+        <h3>No active shipments</h3>
+        <p>Add a tracking number or wait for the next email scan.</p>
+      </div>
+    </div>
+
+    <div id="panel-delivered" class="tab-panel" style="display:none">
+      <div class="card-grid" id="grid-delivered"></div>
+      <div class="empty-state" id="empty-delivered" style="display:none">
+        <h3>No delivered packages yet</h3>
+        <p>Delivered packages will appear here.</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Tracking Modal -->
+  <div class="modal-overlay" id="modal-overlay" onclick="closeModalOnBackdrop(event)">
+    <div class="modal">
+      <h2>Add Tracking Number</h2>
+      <div class="form-group">
+        <label for="input-tracking">Tracking Number <span style="color:#dc2626">*</span></label>
+        <input type="text" id="input-tracking" placeholder="e.g. 9400111899223450244710 or 1Z999AA10123456784"
+               autocomplete="off" spellcheck="false">
+      </div>
+      <div class="form-group">
+        <label for="input-label">Label / Description <span style="color:var(--text-muted)">(optional)</span></label>
+        <input type="text" id="input-label" placeholder="e.g. Amazon order — headphones">
+      </div>
+      <p class="form-error" id="form-error"></p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" id="btn-submit" onclick="submitTracking()">Track Package</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+    // ── State ──────────────────────────────────────────────────────────────
+    let currentTab = 'active';
+    let refreshTimer = null;
+    const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+    // ── Carrier tracking URLs ─────────────────────────────────────────────
+    const CARRIER_URLS = {
+      USPS:   n => `https://tools.usps.com/go/TrackConfirmAction?tLabels=${n}`,
+      UPS:    n => `https://www.ups.com/track?tracknum=${n}`,
+      FedEx:  n => `https://www.fedex.com/fedextrack/?tracknumbers=${n}`,
+      DHL:    n => `https://www.dhl.com/en/express/tracking.html?AWB=${n}`,
+      Amazon: n => `https://www.amazon.com/progress-tracker/package/?shipmentId=${n}`,
+      Unknown:n => `https://parcelsapp.com/en/tracking/${n}`,
+    };
+
+    // ── Status display helpers ────────────────────────────────────────────
+    const STATUS_LABELS = {
+      InTransit:           'In Transit',
+      OutForDelivery:      'Out for Delivery',
+      Delivered:           'Delivered',
+      Exception:           'Exception',
+      Pending:             'Pending',
+      ShipmentInfoReceived:'Info Received',
+      NotFound:            'Not Found',
+    };
+
+    function statusClass(raw) {
+      if (!raw) return 'status-default';
+      const key = raw.replace(/\s+/g, '');
+      return STATUS_LABELS[key] ? `status-${key}` : 'status-default';
+    }
+
+    function statusLabel(raw) {
+      if (!raw) return 'Unknown';
+      const key = raw.replace(/\s+/g, '');
+      return STATUS_LABELS[key] || raw;
+    }
+
+    // ── Date formatting ───────────────────────────────────────────────────
+    function fmtDate(str) {
+      if (!str) return '—';
+      const d = new Date(str);
+      if (isNaN(d)) return str;
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function fmtDateTime(str) {
+      if (!str) return '—';
+      const d = new Date(str);
+      if (isNaN(d)) return str;
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
+             ', ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    }
+
+    function timeAgo(str) {
+      if (!str) return '';
+      const d = new Date(str);
+      if (isNaN(d)) return '';
+      const mins = Math.round((Date.now() - d) / 60000);
+      if (mins < 2)   return 'just now';
+      if (mins < 60)  return `${mins}m ago`;
+      const hrs = Math.round(mins / 60);
+      if (hrs < 24)   return `${hrs}h ago`;
+      return `${Math.round(hrs / 24)}d ago`;
+    }
+
+    // ── Escape HTML ───────────────────────────────────────────────────────
+    function esc(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ── Build tracking URL ────────────────────────────────────────────────
+    function trackingUrl(carrier, number) {
+      const fn = CARRIER_URLS[carrier] || CARRIER_URLS.Unknown;
+      return fn(encodeURIComponent(number));
+    }
+
+    // ── Build timeline HTML ───────────────────────────────────────────────
+    function buildTimeline(events) {
+      if (!events || events.length === 0) {
+        return '<p style="font-size:0.82rem;color:var(--text-muted)">No tracking events yet.</p>';
+      }
+      return events.map((ev, i) => `
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <div class="timeline-status">${esc(statusLabel(ev.status) || ev.status)}</div>
+            ${ev.detail ? `<div class="timeline-detail">${esc(ev.detail)}</div>` : ''}
+            ${ev.location ? `<div class="timeline-detail" style="color:var(--text-muted)">📍 ${esc(ev.location)}</div>` : ''}
+            <div class="timeline-date">${fmtDateTime(ev.time)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ── Build card HTML ───────────────────────────────────────────────────
+    function buildCard(s, id) {
+      const carrier  = s.carrier || 'Unknown';
+      const url      = trackingUrl(carrier, s.trackingNumber);
+      const events   = Array.isArray(s.events) ? s.events : [];
+      const statusCls = statusClass(s.lastStatus);
+      const delivered = s.delivered === true || s.delivered === 'TRUE';
+
+      const deliveryBadge = delivered
+        ? `<div class="delivery-info">✓ Delivered ${fmtDate(s.deliveredDate)}</div>`
+        : (s.estDelivery
+            ? `<div class="est-delivery">Est. delivery: <strong>${fmtDate(s.estDelivery)}</strong></div>`
+            : '');
+
+      return `
+        <div class="card" id="card-${id}">
+          <div class="card-header">
+            <span class="carrier-badge ${esc(carrier)}">${esc(carrier)}</span>
+            <div class="card-title-block">
+              <div class="card-description" title="${esc(s.description)}">${esc(s.description || 'Package')}</div>
+              <div class="card-meta">${esc(s.retailer || '')}${s.retailer && s.orderDate ? ' · ' : ''}${s.orderDate ? fmtDate(s.orderDate) : ''}</div>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <a class="tracking-link" href="${esc(url)}" target="_blank" rel="noopener">${esc(s.trackingNumber)}</a>
+
+            <div class="status-row" style="margin-top:8px">
+              <span class="status-pill ${statusCls}">${esc(statusLabel(s.lastStatus))}</span>
+            </div>
+
+            ${s.statusDetail ? `<div class="event-detail">${esc(s.statusDetail)}</div>` : ''}
+            ${s.lastLocation  ? `<div class="event-location">📍 ${esc(s.lastLocation)}</div>` : ''}
+            ${deliveryBadge}
+          </div>
+
+          <div class="card-footer">
+            <span class="last-updated">Updated ${timeAgo(s.lastUpdated)}</span>
+            <button class="expand-btn" id="expand-${id}" onclick="toggleTimeline('${id}')">
+              History <span class="arrow">▼</span>
+            </button>
+          </div>
+
+          <div class="timeline" id="timeline-${id}">
+            <div class="timeline-title">Tracking History</div>
+            ${buildTimeline(events)}
+          </div>
+        </div>
+      `;
+    }
+
+    // ── Render tab ────────────────────────────────────────────────────────
+    function renderTab(name, items) {
+      const grid  = document.getElementById(`grid-${name}`);
+      const empty = document.getElementById(`empty-${name}`);
+      const count = document.getElementById(`count-${name}`);
+
+      count.textContent = items.length;
+
+      if (items.length === 0) {
+        grid.innerHTML = '';
+        grid.style.display = 'none';
+        empty.style.display = 'block';
+      } else {
+        grid.innerHTML = items.map((s, i) => buildCard(s, `${name}-${i}`)).join('');
+        grid.style.display = 'grid';
+        empty.style.display = 'none';
+      }
+    }
+
+    // ── Fetch data from server ────────────────────────────────────────────
+    function fetchData(silent) {
+      if (!silent) {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('panel-active').style.display    = 'none';
+        document.getElementById('panel-delivered').style.display = 'none';
+      }
+
+      google.script.run
+        .withSuccessHandler(data => onDataLoaded(data, silent))
+        .withFailureHandler(err => onError(err, silent))
+        .getShipmentData();
+    }
+
+    function onDataLoaded(data, silent) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('panel-active').style.display    = 'block';
+      document.getElementById('panel-delivered').style.display = 'block';
+
+      renderTab('active',    data.active    || []);
+      renderTab('delivered', data.delivered || []);
+
+      const now = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      document.getElementById('last-refresh').textContent = `Last updated: ${now}`;
+
+      // Restore correct tab visibility
+      switchTab(currentTab, true);
+
+      // Schedule next refresh
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => fetchData(true), REFRESH_INTERVAL_MS);
+    }
+
+    function onError(err, silent) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('panel-active').style.display    = 'block';
+      document.getElementById('panel-delivered').style.display = 'block';
+      if (!silent) {
+        showToast('Failed to load shipments: ' + (err.message || err), 'error');
+      }
+    }
+
+    // ── Tab switching ─────────────────────────────────────────────────────
+    function switchTab(name, skipRender) {
+      currentTab = name;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(`tab-${name}`).classList.add('active');
+
+      ['active', 'delivered'].forEach(n => {
+        const panel = document.getElementById(`panel-${n}`);
+        if (panel) panel.style.display = (n === name) ? 'block' : 'none';
+      });
+    }
+
+    // ── Timeline toggle ───────────────────────────────────────────────────
+    function toggleTimeline(id) {
+      const tl  = document.getElementById(`timeline-${id}`);
+      const btn = document.getElementById(`expand-${id}`);
+      const open = tl.classList.toggle('open');
+      btn.classList.toggle('expanded', open);
+      btn.querySelector('.arrow').style.transform = open ? 'rotate(180deg)' : '';
+    }
+
+    // ── Modal ─────────────────────────────────────────────────────────────
+    function openModal() {
+      document.getElementById('modal-overlay').classList.add('open');
+      document.getElementById('input-tracking').value = '';
+      document.getElementById('input-label').value    = '';
+      hideFormError();
+      setTimeout(() => document.getElementById('input-tracking').focus(), 50);
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.remove('open');
+    }
+
+    function closeModalOnBackdrop(e) {
+      if (e.target === document.getElementById('modal-overlay')) closeModal();
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    function showFormError(msg) {
+      const el = document.getElementById('form-error');
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+
+    function hideFormError() {
+      document.getElementById('form-error').classList.remove('visible');
+    }
+
+    function submitTracking() {
+      const number = document.getElementById('input-tracking').value.trim();
+      const label  = document.getElementById('input-label').value.trim();
+
+      if (!number) {
+        showFormError('Please enter a tracking number.');
+        return;
+      }
+
+      hideFormError();
+      const btn = document.getElementById('btn-submit');
+      btn.disabled    = true;
+      btn.textContent = 'Adding…';
+
+      google.script.run
+        .withSuccessHandler(result => {
+          btn.disabled    = false;
+          btn.textContent = 'Track Package';
+
+          if (result && result.error) {
+            showFormError(result.error);
+          } else {
+            closeModal();
+            showToast('Tracking number added!', 'success');
+            fetchData(true);
+          }
+        })
+        .withFailureHandler(err => {
+          btn.disabled    = false;
+          btn.textContent = 'Track Package';
+          showFormError('Error: ' + (err.message || err));
+        })
+        .addManualTracking(number, label);
+    }
+
+    // ── Toast notifications ───────────────────────────────────────────────
+    function showToast(msg, type) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast${type ? ' ' + type : ''}`;
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────
+    fetchData(false);
+  </script>
+</body>
+</html>

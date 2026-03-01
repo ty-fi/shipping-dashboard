@@ -1,0 +1,6 @@
+*.session.md
+*.local.gs
+config.private.*
+config.local.*
+.env
+.env.*
