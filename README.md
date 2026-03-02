@@ -28,7 +28,7 @@ Apps Script handles everything that needs Google account access: reading Gmail, 
 | `Code.gs` | Apps Script backend — paste into script.google.com |
 | `Clasp-Deployment-Guide.md` | How to use clasp to sync this repo with Apps Script |
 
-`Index.html` and `Stylesheet.html` are legacy files from an earlier attempt to serve the UI from Apps Script itself. They are no longer used.
+`Stylesheet.html` is a legacy file from an earlier attempt to serve the UI from Apps Script itself. It is no longer used.
 
 ---
 
@@ -99,11 +99,19 @@ Your dashboard will be live at `https://ty-fi.github.io/shipping-dashboard/`.
 
 ## Adding Packages Manually
 
-For Amazon orders placed on a shared account (where you don't receive the shipping email):
+Use **+ Add Tracking** for packages where the shipping email doesn't contain a tracking number:
 
+**Amazon (shared account)**
 1. Go to [amazon.com/gp/css/order-history](https://www.amazon.com/gp/css/order-history)
 2. Find the shipped order → copy the tracking number
-3. Click **+ Add Tracking** in the dashboard
+
+**eBay**
+eBay shipping emails ("Your package is now with its carrier!") do not include the carrier tracking number — only the eBay item number. To track an eBay package:
+1. Go to your eBay order → **Track package** → copy the carrier tracking number
+2. Click **+ Add Tracking** in the dashboard and paste it with a label (e.g. "eBay — blue headphones")
+
+**Relabeling an existing entry**
+If a package was already picked up from a generic email (e.g. USPS Informed Delivery) and has a poor description, click **+ Add Tracking**, enter the same tracking number with a better label — it will update the description on the existing entry rather than creating a duplicate.
 
 Carrier formats:
 - **USPS:** starts with `9` (22–30 digits)
@@ -148,6 +156,12 @@ Sheet named **"Shipments"** (created automatically by `setup()`):
 
 **17track shows no info yet**
 - Normal for newly registered numbers. Usually appears within a few hours of the first carrier scan.
+
+**`SpreadsheetApp` error / spinner never resolves**
+This usually means the OAuth authorization is incomplete. Apps Script won't re-prompt if *any* prior authorization exists, even a partial one.
+1. Go to [myaccount.google.com/permissions](https://myaccount.google.com/permissions)
+2. Find the Apps Script app → **Remove Access**
+3. Back in the script editor: select `setup` → **Run** → authorize all scopes when prompted (Gmail + Sheets)
 
 **Triggers not firing**
 - Check **Apps Script → Triggers** to confirm they exist
