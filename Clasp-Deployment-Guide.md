@@ -39,8 +39,17 @@ Then from the project directory:
     cd ~/claude-projects/shipping-dashboard
     clasp clone SCRIPT_ID_HERE --rootDir .
 
-This creates a `.clasp.json` file linking the local directory to the script project.
-It only contains the script ID so it is safe to commit.
+This creates a `.clasp.json` file and `appsscript.json` — both safe to commit.
+
+**Gotcha: `clasp clone` also pulls down `Code.js`**
+
+`clasp clone` pulls the live script as `Code.js`, which duplicates the existing `Code.gs` in this repo. If you push without cleaning this up, Apps Script will end up with two separate script files. Fix it before pushing:
+
+1. Copy real credentials from `Code.js` into `Code.gs` (the `SHEET_ID` and `TRACKING_API_KEY` lines in the CONFIG block)
+2. Delete `Code.js`
+3. Tell git to ignore local changes to `Code.gs` so credentials don't get staged:
+
+        git update-index --skip-worktree Code.gs
 
 ### 5. Push code
 

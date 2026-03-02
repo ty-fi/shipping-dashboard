@@ -17,18 +17,18 @@
 
 - **Dashboard**: live and working at https://ty-fi.github.io/shipping-dashboard/
 - **Apps Script backend**: deployed, authorized, triggers running (`scanEmails` every 6h, `updateAllTracking` every 1h)
-- **Code.gs in repo**: has two new fixes (eBay + manual tracking) that are NOT yet in Apps Script — need to push
-- **eBay packages**: will no longer create false-positive rows once fix is applied; Informed Delivery will handle USPS tracking for those packages
+- **clasp**: set up and working — `.clasp.json` and `appsscript.json` committed to repo
+- **Code.gs**: latest fixes (eBay + manual tracking) pushed to Apps Script via `clasp push`
+- **eBay packages**: will no longer create false-positive rows; Informed Delivery handles USPS tracking for those packages
 - **Item names for eBay packages**: not solved — accepted limitation. Use "+ Add Tracking" with a label as the workaround.
 
 ---
 
 ## Next Steps
 
-1. **Apply Code.gs fixes to Apps Script**: run `clasp push` from the project folder, or copy-paste `Code.gs` into the script editor
-2. **Clean up stale eBay rows**: manually delete any existing rows in the Shipments sheet where the "tracking number" is a 12-digit eBay item number (e.g. `317888899265`)
-3. **Test the description-update flow**: try adding a tracking number that already exists via "+ Add Tracking" with a label — should update the description rather than error
-4. **Consider suppressing Informed Delivery emails from the Gmail scan query**: they're usually duplicative; the existing deduplication by tracking number handles most cases but doesn't help when the eBay false-positive pre-fills the slot (now fixed)
+1. **Clean up stale eBay rows**: manually delete any existing rows in the Shipments sheet where the "tracking number" is a 12-digit eBay item number (e.g. `317888899265`)
+2. **Test the description-update flow**: try adding a tracking number that already exists via "+ Add Tracking" with a label — should update the description rather than error
+3. **Consider suppressing Informed Delivery emails from the Gmail scan query**: they're usually duplicative; the existing deduplication by tracking number handles most cases but doesn't help when the eBay false-positive pre-fills the slot (now fixed)
 
 ---
 
@@ -43,6 +43,7 @@
 | Item name / tracking number linkage | eBay email has item name; Informed Delivery email has tracking number. No shared key between them — not feasibly linkable. Accepted limitation. |
 | `addManualTracking` with duplicate | Now updates description if label provided; returns error only if no label. Frontend may still show old error message UI — worth checking. |
 | clasp push vs copy-paste | clasp is installed via Nodist. `clasp open` subcommand not available. Use `/dev` URL to test without redeploying; `/exec` for stable version. |
+| `clasp clone` pulls Code.js | Running `clasp clone` pulls the live Apps Script file as `Code.js` (not `.gs`), creating a duplicate. Fix: copy real credentials from `Code.js` into `Code.gs`, delete `Code.js`, then run `git update-index --skip-worktree Code.gs` to prevent credentials from being staged. |
 | GitHub Pages → Apps Script | Must deploy Apps Script as "Anyone, even anonymous" — fetch() from GitHub Pages requires no auth. |
 
 ---

@@ -168,6 +168,9 @@ This usually means the OAuth authorization is incomplete. Apps Script won't re-p
 - Check **Apps Script → Executions** for error logs
 - Re-run `setup()` to reinstall triggers
 
+**`clasp clone` creates a duplicate `Code.js`**
+Running `clasp clone` pulls the live script file as `Code.js`, duplicating `Code.gs`. If you push without fixing this, Apps Script ends up with two script files. See `Clasp-Deployment-Guide.md` step 4 for the fix.
+
 **Quota**
 - Free tier: 200 lifetime registrations. `stoptrack` is called on delivery to keep usage low.
 - Paid plans start at $9/month for 100 new registrations/month.
