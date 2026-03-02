@@ -150,7 +150,8 @@ function scanEmails() {
       var bodyText = msg.getPlainBody() || '';
       var bodyHtml = msg.getBody()      || '';
 
-      var found = extractTrackingNumbers(bodyText, bodyHtml);
+      var isEbay = sender.toLowerCase().indexOf('ebay') !== -1;
+      var found = extractTrackingNumbers(bodyText, bodyHtml, { skipTextPatterns: isEbay });
       if (found.length === 0) return;
 
       var retailer = parseRetailer(sender);
@@ -196,7 +197,8 @@ function scanEmails() {
 
 // --- Tracking number extraction ---
 
-function extractTrackingNumbers(bodyText, bodyHtml) {
+function extractTrackingNumbers(bodyText, bodyHtml, options) {
+  options = options || {};
   var results = [];
   var seen = {};
 
@@ -224,21 +226,24 @@ function extractTrackingNumbers(bodyText, bodyHtml) {
     }
   });
 
-  // Regex patterns against plain text body
-  var textPatterns = [
-    { re: /\b(9[0-9]{21,27})\b/g,       carrier: 'USPS'   },
-    { re: /\b(1Z[A-Z0-9]{16})\b/gi,     carrier: 'UPS'    },
-    { re: /\b([0-9]{20,22})\b/g,         carrier: 'FedEx'  }, // FedEx door tag / 20-22 digit
-    { re: /\b([0-9]{15})\b/g,            carrier: 'FedEx'  }, // FedEx 15-digit
-    { re: /\b([0-9]{12})\b/g,            carrier: 'FedEx'  }, // FedEx 12-digit (check last to avoid USPS collision)
-    { re: /\bTBA\d{12}US?\b/gi,          carrier: 'Amazon' },
-  ];
-  textPatterns.forEach(function(p) {
-    var m;
-    while ((m = p.re.exec(bodyText)) !== null) {
-      add(m[1] || m[0], p.carrier);
-    }
-  });
+  // Regex patterns against plain text body (skipped for senders like eBay where
+  // item/order numbers collide with carrier number formats)
+  if (!options.skipTextPatterns) {
+    var textPatterns = [
+      { re: /\b(9[0-9]{21,27})\b/g,       carrier: 'USPS'   },
+      { re: /\b(1Z[A-Z0-9]{16})\b/gi,     carrier: 'UPS'    },
+      { re: /\b([0-9]{20,22})\b/g,         carrier: 'FedEx'  }, // FedEx door tag / 20-22 digit
+      { re: /\b([0-9]{15})\b/g,            carrier: 'FedEx'  }, // FedEx 15-digit
+      { re: /\b([0-9]{12})\b/g,            carrier: 'FedEx'  }, // FedEx 12-digit (check last to avoid USPS collision)
+      { re: /\bTBA\d{12}US?\b/gi,          carrier: 'Amazon' },
+    ];
+    textPatterns.forEach(function(p) {
+      var m;
+      while ((m = p.re.exec(bodyText)) !== null) {
+        add(m[1] || m[0], p.carrier);
+      }
+    });
+  }
 
   return results;
 }
@@ -440,6 +445,16 @@ function apiCall17Track(endpoint, payload) {
 function addManualTracking(number, label) {
   var existingTracking = getExistingTrackingNumbers();
   if (existingTracking[number]) {
+    if (label) {
+      var sheet = getSheet();
+      var data  = sheet.getDataRange().getValues();
+      for (var r = 1; r < data.length; r++) {
+        if ((data[r][COL.TRACKING_NUM - 1] || '').toUpperCase() === number) {
+          sheet.getRange(r + 1, COL.DESCRIPTION).setValue(label);
+          return { success: true, updated: true };
+        }
+      }
+    }
     return { error: 'Tracking number ' + number + ' is already being tracked.' };
   }
 
