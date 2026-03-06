@@ -1,4 +1,6 @@
 # Claude session files
+_*.md
+_context-history/
 *.session.md
 *.jsonl
 
